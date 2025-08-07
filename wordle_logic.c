@@ -120,15 +120,15 @@ void *game(void *arg) {
 
     short i, clientBytes;
     char* buffer = (char*)calloc(32 , sizeof(char)); // Buffer to store received data
-    char* response = (char*)calloc(8 , sizeof(char)); //8 byte response
+    char* response = (char*)calloc(12 , sizeof(char)); //12 byte response
 
 
-    Client *cd2 = (Client *)arg;
+    Client *cd2 = (Client *)arg ;
     int sd = cd2->sd;
     int pos = cd2->index;
     char* word = *(words + pos);
+    
 
-    int won = 0; //lose if 0, win if 1 
     for (i = 5; i >= 0; i--) {
         printf(" waiting for guess\n");
         int bytes = recv(sd, buffer, sizeof(buffer), 0);
@@ -137,9 +137,7 @@ void *game(void *arg) {
             break;
         }
         printf("THREAD %p: rcvd guess: %s\n", (void*)pthread_self(),buffer);
-        for (int j = 0; j < bytes; j++) {
-            *(buffer + j) = tolower(*(buffer + j));
-        }
+        for (int i = 0; i < bytes; i++) *(buffer + i) = tolower(*(buffer + i));
 
         if ((bytes != 5) || (!found(words, buffer, num_words))) {
             i++;
@@ -162,7 +160,6 @@ void *game(void *arg) {
 
         *(response) = 'Y';
         memcpy(response + 1, &clientBytes, sizeof(short));
-        memcpy(response + 3, buffer, 5);
 
 
         pthread_mutex_lock(&thread_mutex);
@@ -171,26 +168,36 @@ void *game(void *arg) {
 
         printf("THREAD %p: sending reply: %s (%d guess%s left)\n",
         (void*)pthread_self(), buffer, i, i == 1 ? "" : "es");
-        
-        send(sd, response, 8, 0);
 
-        for (int i = 0; i < 5; ++i) *(buffer + i) = tolower(*(buffer + i));
+        char response_copy[6];
+        strncpy(response_copy,buffer,6);
+        
+        for (int j = 0; j < bytes; j++) *(buffer + j) = tolower(*(buffer + j));
         if (strcmp(buffer, word) == 0) {
-            won = 1; 
+            memcpy(response + 3, "YOU WIN!", 8);
+            send(sd, response, 11, 0);
+
+            pthread_mutex_lock(&thread_mutex);
+            total_wins++;
+            pthread_mutex_unlock(&thread_mutex);
             break;
+        }
+        else {
+            if (i == 0) {
+                memcpy(response + 3, "YOU LOSE!", 9);
+                send(sd, response, 12, 0);
+
+                pthread_mutex_lock(&thread_mutex);
+                total_losses++;
+                pthread_mutex_unlock(&thread_mutex);
+            }
+            else {
+                memcpy(response + 3, response_copy, 5);
+                send(sd, response, 8, 0);
+            }
         }
     }
     for(int i = 0; i < 5; i++) *(word + i) = toupper(*(word + i));
-    if (won == 0) {
-        pthread_mutex_lock(&thread_mutex);
-        total_losses++;
-        pthread_mutex_unlock(&thread_mutex);
-    }
-    else {
-        pthread_mutex_lock(&thread_mutex);
-        total_wins++;
-        pthread_mutex_unlock(&thread_mutex);
-    }
     printf(" game over; word was %s!\n", word);
 
     close(sd);

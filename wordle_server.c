@@ -78,7 +78,7 @@ int wordle_server( int argc, char ** argv ) {
             perror("accept() failed");
             continue;
         }
-        printf("rcvd incoming connection request\n");
+        printf("rcvd incoming cnonection request\n");
 
         Client *cd = (Client *)calloc(1, sizeof(Client));
         cd->sd = sd;
@@ -92,6 +92,5 @@ int wordle_server( int argc, char ** argv ) {
     printf("MAIN: valid guesses: %d\n",total_guesses);
     printf("MAIN: win/loss: %d/%d\n",total_wins, total_losses);
      
-
     return EXIT_SUCCESS;
 }

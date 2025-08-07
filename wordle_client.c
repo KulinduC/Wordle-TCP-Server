@@ -52,7 +52,7 @@ int main()
 
 while (1)
 {
-  char buffer[8];
+  char buffer[16];
   if (fgets(buffer, 8, stdin) == NULL) break; // reads up to 7 characters, stores at most 5 letters + \n + \0
 
   buffer[strcspn(buffer, "\n")] = '\0'; /* get rid of the '\n' */
@@ -61,8 +61,9 @@ while (1)
   printf("CLIENT: Sending to server: %s\n", buffer);
   int n = write(sd, buffer, strlen(buffer));    /* or use send()/recv() */
   if (n == -1) { perror( "write() failed" ); return EXIT_FAILURE; }
-
-  n = read(sd, buffer, 8);    /* BLOCKING */
+  
+  n = read(sd, buffer, sizeof(buffer));    /* BLOCKING */
+  buffer[n] = '\0';
 
   if (n == -1)
   {
@@ -85,7 +86,7 @@ while (1)
 
     short guesses = ntohs(*(short *)(buffer + 1));
     printf(" -- %d guess%s remaining\n", guesses, guesses == 1 ? "" : "es");
-    if ( guesses == 0 ) break;
+    if (guesses == 0) break;
   }
 }
 
