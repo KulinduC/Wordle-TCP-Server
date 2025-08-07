@@ -22,9 +22,9 @@ int wordle_server( int argc, char ** argv ) {
 
     setvbuf( stdout, NULL, _IONBF, 0 );
 
-    if (argc != 4) {
+    if (argc != 3) {
         fprintf(stderr, "ERROR: Invalid argument(s)\n");
-        fprintf(stderr, "USAGE: wordle-server.out <listener-port> <seed> <dictionary-filename>\n");
+        fprintf(stderr, "USAGE: wordle-server.out <listener-port> <dictionary-filename>\n");
         return EXIT_FAILURE;
     }
 
