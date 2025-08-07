@@ -9,6 +9,18 @@
 #include <signal.h>
 #include "client_handler.h"
 
+int count_lines(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) return 0;
+    int count = 0;
+    char buffer[128];
+    while (fgets(buffer, sizeof(buffer), file)) {
+        count++;
+    }
+    fclose(file);
+    return count;
+}
+
 void free_mem(char **words, int num) { //free memory function
     if (words != NULL) {
         for (int i = 0; i < num; i++) {

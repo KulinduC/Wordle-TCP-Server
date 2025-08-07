@@ -1,18 +1,57 @@
 # Wordle-TCP-Server
 
-First compile the wordle server 
-`gcc -o hw3-server.out hw3-main.c hw3.c -pthread`
+## Build Instructions
 
-Then compile the client code
-`gcc -o hw3-client.out hw3-client.c`
+First, compile the Wordle server:
+```
+gcc -o wordle-server.out server_main.c wordle_server.c wordle_logic.c -pthread
+```
 
-Run the compiled wordle server
-`./hw3-server.out 8080 <seed> <dictionary-filename> <num-words>`
+Then, compile the client code:
+```
+gcc -o wordle-client.out wordle_client.c
+```
 
-To change the listener port also change the server port in hw3-client.c
-`unsigned short server_port = 8080;`
+## Running the Server
 
-Run the compiled client
-`./hw3-client.out`
+Run the compiled Wordle server with:
+```
+./wordle-server.out <port> <seed> <dictionary-filename>
+```
+- `<port>`: The port number for the server to listen on (e.g., 8080)
+- `<seed>`: An integer to seed the random number generator
+- `<dictionary-filename>`: Path to your dictionary file (see format below)
 
-The server will wait on a connection from the client and a valid guess as well. Have fun playing wordle :)
+**All words in the dictionary file will be used.**
+
+**Example:**
+```
+./wordle-server.out 8080 1234 dictionary.txt
+```
+
+## Running the Client
+
+To run the client (on the same or another machine):
+```
+./wordle-client.out
+```
+
+If you change the server port, also update this line in `wordle_client.c`:
+```
+unsigned short server_port = 8080;
+```
+
+## Dictionary File Format
+- Plain text file
+- **One 5-letter word per line**
+- No spaces, punctuation, or extra characters
+- Example:
+```
+apple
+grape
+peach
+melon
+berry
+```
+
+Have fun playing Wordle! 🎉

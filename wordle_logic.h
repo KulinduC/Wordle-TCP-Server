@@ -9,5 +9,6 @@ int found(char **list, char *word, int num);
 char **wordsList(const char *fn, int num);
 void SIGEND_WORDLE(int signum);
 void *game(void *arg);
+int count_lines(const char *filename);
 
 #endif
