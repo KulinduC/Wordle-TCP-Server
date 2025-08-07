@@ -1,1 +1,43 @@
+# Compiled binaries
+*.out
+*.exe
+
+# Object files
+*.o
+*.obj
+
+# Dependency files
+*.d
+
+# Core dumps
+core
+core.*
+
+# Editor/IDE files
 .vscode/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Backup files
+*.bak
+*.tmp
+
+# CMake and build system files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Test output
+test-output/
