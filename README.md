@@ -16,17 +16,16 @@ gcc -o wordle-client.out wordle_client.c
 
 Run the compiled Wordle server with:
 ```
-./wordle-server.out <port> <seed> <dictionary-filename>
+./wordle-server.out <port> <dictionary-filename>
 ```
 - `<port>`: The port number for the server to listen on (e.g., 8080)
-- `<seed>`: An integer to seed the random number generator
 - `<dictionary-filename>`: Path to your dictionary file (see format below)
 
 **All words in the dictionary file will be used.**
 
 **Example:**
 ```
-./wordle-server.out 8080 1234 dictionary.txt
+./wordle-server.out 8080 1234 wordle.txt
 ```
 
 ## Running the Client

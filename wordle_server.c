@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+#include <time.h>
 #include "client_handler.h"
 #include "wordle_logic.h"
 
@@ -27,16 +28,15 @@ int wordle_server( int argc, char ** argv ) {
         return EXIT_FAILURE;
     }
 
-    int port, seed;
+    int port;
     char* fn;
 
     port = atoi(*(argv + 1));
-    seed = atoi(*(argv + 2));
-    fn = *(argv + 3);
+    fn = *(argv + 2);
     num_words = count_lines(fn);
 
     words = wordsList(fn, num_words);
-    srand(seed);
+    srand(time(NULL));
 
 
     if (words == NULL) {
@@ -44,7 +44,7 @@ int wordle_server( int argc, char ** argv ) {
         return EXIT_FAILURE;
     }
 
-    int listener_sd = socket( AF_INET, SOCK_STREAM, 0 );
+    int listener_sd = socket(AF_INET, SOCK_STREAM, 0);
     if (listener_sd == -1) {
         perror("socket() failed"); 
         return EXIT_FAILURE;
@@ -65,9 +65,8 @@ int wordle_server( int argc, char ** argv ) {
         return EXIT_FAILURE;
     }
 
-    printf(" opened %s (%d words)\n", fn, num_words);
-    printf(" seeded pseudo-random number generator with %d\n", seed);
-    printf(" Wordle server listening on port \n");
+    printf("opened %s (%d words)\n", fn, num_words);
+    printf("Wordle server listening on port \n");
 
 
     while(1) {
@@ -79,7 +78,7 @@ int wordle_server( int argc, char ** argv ) {
             perror("accept() failed");
             continue;
         }
-        printf(" rcvd incoming connection request\n");
+        printf("rcvd incoming connection request\n");
 
         Client *cd = (Client *)calloc(1, sizeof(Client));
         cd->sd = sd;
