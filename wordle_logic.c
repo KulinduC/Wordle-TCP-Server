@@ -1,22 +1,13 @@
 #include <stdio.h>
-#include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <ctype.h>
 #include <signal.h>
-
-typedef struct data {
-    int sd;
-    int num;
-    int index;
-    char ** wordList;
-} Client;
+#include "client_handler.h"
 
 void free_mem(char **words, int num) { //free memory function
     if (words != NULL) {
@@ -61,8 +52,8 @@ char **wordsList(const char *fn, int num) { //getting the wordList
         return NULL;
     }
 
-    char **words = (char**)calloc(num + 1, sizeof(char *));
-    if (words == NULL) {
+    char **wordList = (char**)calloc(num + 1, sizeof(char *));
+    if (wordList == NULL) {
         perror("Memory alloc failed");
         fclose(file);
         return NULL;
@@ -79,8 +70,8 @@ char **wordsList(const char *fn, int num) { //getting the wordList
         *(word+5) = '\0';
 
         int len = strlen(word);
-        *(words + i) = (char *)calloc(len + 1, sizeof(char));
-        if (*(words + i) == NULL) {
+        *(wordList + i) = (char *)calloc(len + 1, sizeof(char));
+        if (*(wordList + i) == NULL) {
             perror("Memory allocation error");
             return NULL;
         }
@@ -88,29 +79,30 @@ char **wordsList(const char *fn, int num) { //getting the wordList
         for (int j = 0; j < len; j++) {
             *(word + j) = tolower(*(word + j));
         }
-        strcpy(*(words + i), word);
+        strcpy(*(wordList + i), word);
         free(word);
     }
     
     fclose(file);
-    return words;
+    return wordList;
 }
 
 
-pthread_mutex_t thread_mutex;
-
-
-extern int total_guesses;
-extern int total_wins;
-extern int total_losses;
-extern char ** words;
 
 void SIGEND_WORDLE(int signum) {
     printf(" SIGUSR1 rcvd; Wordle server shutting down...\n");
     printf("MAIN: valid guesses: %d\n",total_guesses);
     printf("MAIN: win/loss: %d/%d\n",total_wins, total_losses);
+    
+    // Free the words list before exiting
+    if (words != NULL) {
+        free_mem(words, num_words);
+    }
+    
     exit(1);
 }
+
+pthread_mutex_t thread_mutex;
 
 void *game(void *arg) {
 
@@ -121,9 +113,7 @@ void *game(void *arg) {
 
     Client *cd2 = (Client *)arg;
     int sd = cd2->sd;
-    int num_words = cd2->num;
     int pos = cd2->index;
-    char** words = cd2->wordList;
     char* word = *(words + pos);
 
     int won = 0; //lose if 0, win if 1 
@@ -146,13 +136,9 @@ void *game(void *arg) {
             memcpy(response + 1, &clientBytes, sizeof(short));
             memcpy(response + 3, "?????", 5);
 
+            printf("THREAD %p: invalid guess; sending reply: ????? (%d guess%s left)\n",
+            (void*)pthread_self(), i, i == 1 ? "" : "es");
 
-            if (i == 1) {
-                printf("THREAD %p: invalid guess; sending reply: ????? (%d guess left)\n", (void*)pthread_self(), i);
-            }
-            else{
-                printf("THREAD %p: invalid guess; sending reply: ????? (%d guesses left)\n", (void*)pthread_self(),i);
-            }
             
             send(sd, response, 8, 0);
             continue;
@@ -171,13 +157,9 @@ void *game(void *arg) {
         total_guesses++;
         pthread_mutex_unlock(&thread_mutex);
 
-
-        if (i == 1) {
-            printf("THREAD %p: sending reply: %s (%d guess left)\n", (void*)pthread_self(),buffer,i);
-        }
-        else{
-            printf("THREAD %p: sending reply: %s (%d guesses left)\n", (void*)pthread_self(),buffer,i);
-        }
+        printf("THREAD %p: sending reply: %s (%d guess%s left)\n",
+        (void*)pthread_self(), buffer, i, i == 1 ? "" : "es");
+        
         send(sd, response, 8, 0);
 
         for (int i = 0; i < 5; ++i) *(buffer + i) = tolower(*(buffer + i));
@@ -205,98 +187,4 @@ void *game(void *arg) {
     free(buffer);
 
     return NULL;
-}
-
-
-int wordle_server( int argc, char ** argv ) {
-    total_guesses = total_wins = total_losses = 0;
-    words = (char**)calloc( 1, sizeof( char * ) );
-    *words = NULL;
-
-    pthread_mutex_init(&thread_mutex, NULL);
-
-    signal(SIGUSR1, SIGEND_WORDLE);
-    signal(SIGINT, SIG_IGN);
-    signal(SIGTERM, SIG_IGN);
-    signal(SIGUSR2, SIG_IGN);
-
-    setvbuf( stdout, NULL, _IONBF, 0 );
-
-    if (argc != 5) {
-        fprintf(stderr, "ERROR: Invalid argument(s)\n");
-        fprintf(stderr, "USAGE: hw3.out <listener-port> <seed> <dictionary-filename> <num-words>\n");
-        return EXIT_FAILURE;
-    }
-
-    int port, seed, num_words;
-    char* fn;
-    char** words;
-
-    port = atoi(*(argv + 1));
-    seed = atoi(*(argv + 2));
-    fn = *(argv + 3);
-    num_words = atoi(*(argv + 4));
-
-    words = wordsList(fn, num_words);
-    srand(seed);
-
-
-    if (words == NULL) {
-        fprintf(stderr, "ERROR: Word file unreadable\n");
-        return EXIT_FAILURE;
-    }
-
-    int listener_sd = socket( AF_INET, SOCK_STREAM, 0 );
-    if (listener_sd == -1) {
-        perror("socket() failed"); 
-        return EXIT_FAILURE;
-    }
-
-    struct sockaddr_in tcp_server;
-    tcp_server.sin_family = AF_INET; 
-    tcp_server.sin_port = htons((unsigned short) port);
-    tcp_server.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(listener_sd, (struct sockaddr*)&tcp_server, sizeof(tcp_server)) == -1) {
-        perror("bind() failed");
-        return EXIT_FAILURE;
-    }
-
-    if (listen(listener_sd, 32) == -1) {
-        perror("listen() failed");
-        return EXIT_FAILURE;
-    }
-
-    printf(" opened %s (%d words)\n", fn, num_words);
-    printf(" seeded pseudo-random number generator with %d\n", seed);
-    printf(" Wordle server listening on port \n");
-
-
-    while(1) {
-        struct sockaddr_in rc;
-        int len = sizeof(rc);
-        fflush(stdout);
-        int sd = accept(listener_sd, (struct sockaddr *)&rc,(socklen_t *)&len);
-        if (sd == -1) {
-            perror("accept() failed");
-            continue;
-        }
-        printf(" rcvd incoming connection request\n");
-
-        Client *cd = (Client *)calloc(1, sizeof(Client));
-        cd->sd = sd;
-        cd->num = num_words;
-        cd->index = rand() % num_words;
-        cd->wordList = words;
-
-        pthread_t ct;
-        pthread_create(&ct, NULL, game, cd);
-        pthread_detach(ct);
-    }
-    close(listener_sd);
-    printf("MAIN: valid guesses: %d\n",total_guesses);
-    printf("MAIN: win/loss: %d/%d\n",total_wins, total_losses);
-     
-
-    return EXIT_SUCCESS;
 }

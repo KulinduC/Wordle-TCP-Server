@@ -1,5 +1,3 @@
-/* hw3-client.c */
-
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -8,7 +6,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <strings.h>
 #include <unistd.h>
 
 int main()
@@ -52,12 +49,13 @@ int main()
 
   /* The implementation of the application protocol is below... */
 
-while ( 1 )    /* TO DO: fix the memory leaks! */
+while (1)
 {
-  char * buffer = calloc( 9, sizeof( char ) );
-  if ( fgets( buffer, 9, stdin ) == NULL ) break;
-  if ( strlen( buffer ) != 6 ) { printf( "CLIENT: invalid -- try again\n" ); continue; }
-  *(buffer + 5) ='\0';   /* get rid of the '\n' */
+  char buffer[8];
+  if ( fgets( buffer, 8, stdin ) == NULL ) break; // reads up to 7 characters, stores at most 5 letters + \n + \0
+
+  buffer[strcspn(buffer, "\n")] = '\0'; /* get rid of the '\n' */
+  if ( strlen( buffer ) != 5 ) { printf( "CLIENT: invalid -- try again\n" ); continue; }
 
   printf( "CLIENT: Sending to server: %s\n", buffer );
   int n = write( sd, buffer, strlen( buffer ) );    /* or use send()/recv() */
@@ -75,13 +73,13 @@ while ( 1 )    /* TO DO: fix the memory leaks! */
     printf( "CLIENT: rcvd no data; TCP server socket was closed\n" );
     break;
   }
-  else /* n > 0 */
+  else
   {
-    switch ( *buffer )
+    switch (buffer[0])
     {
       case 'N': printf( "CLIENT: invalid guess -- try again" ); break;
       case 'Y': printf( "CLIENT: response: %s", buffer + 3 ); break;
-      default: break; /* ?!?! */
+      default: break;
     }
 
     short guesses = ntohs( *(short *)(buffer + 1) );
