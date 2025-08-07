@@ -8,6 +8,8 @@
 int total_guesses;
 int total_wins;
 int total_losses;
+char **words = NULL;
+int num_words = 0;
 
 int main( int argc, char ** argv )
 {
