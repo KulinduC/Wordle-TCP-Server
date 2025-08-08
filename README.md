@@ -53,4 +53,9 @@ melon
 berry
 ```
 
-Have fun playing Wordle! 🎉
+Have fun playing Wordle!
+
+Run the script to stop the server in another terminal:
+```
+./kill_wordle.sh
+```

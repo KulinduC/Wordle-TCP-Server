@@ -48,10 +48,10 @@ int main()
 
   printf("CLIENT: Enter a 5-letter word\n");
 
-  /* The implementation of the application protocol is below... */
 
 while (1)
 {
+  int won = 0;
   char buffer[16];
   if (fgets(buffer, 8, stdin) == NULL) break; // reads up to 7 characters, stores at most 5 letters + \n + \0
 
@@ -80,13 +80,27 @@ while (1)
     switch (buffer[0])
     {
       case 'N': printf("CLIENT: invalid guess -- try again"); break;
-      case 'Y': printf("CLIENT: response: %s", buffer + 3); break;
+      case 'Y':
+            // Check for "YOU WIN!" or "YOU LOSE!" in response
+            if (strncmp(buffer + 3, "YOU WIN!", 8) == 0) {
+                printf("CLIENT: You guessed the word!\n");
+                won = 1;
+            } else if (strncmp(buffer + 3, "YOU LOSE!", 9) == 0) {
+                printf("CLIENT: You lost the game!\n");
+            }
+            else {
+              printf("CLIENT: response: %s", buffer + 3);
+            }
+            break;
       default: break;
     }
 
     short guesses = ntohs(*(short *)(buffer + 1));
     printf(" -- %d guess%s remaining\n", guesses, guesses == 1 ? "" : "es");
-    if (guesses == 0) break;
+    if (guesses == 0 || won) {
+      printf("CLIENT: Game over.\n");
+      break;
+    }
   }
 }
 
